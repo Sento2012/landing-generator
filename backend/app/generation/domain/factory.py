@@ -1,6 +1,7 @@
-"""Factory модуля — собирает Repository / EntityManager / Generator с их зависимостями."""
+"""Factory модуля — собирает сервисы Generation домена."""
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from app.generation.domain.business.generation_executor import GenerationExecutor
 from app.generation.domain.business.generator import GenerationStreamingGenerator
 from app.generation.domain.persistence.entity_manager import GenerationEntityManager
 from app.generation.domain.persistence.repository import GenerationRepository
@@ -28,7 +29,11 @@ class GenerationFactory:
         )
 
     def create_generator(self) -> GenerationStreamingGenerator:
-        return GenerationStreamingGenerator(
+        # Generator теперь — watcher, ему нужен только Repository
+        return GenerationStreamingGenerator(repository=self.create_repository())
+
+    def create_executor(self) -> GenerationExecutor:
+        return GenerationExecutor(
             repository=self.create_repository(),
             entity_manager=self.create_entity_manager(),
             llm_facade=self._llm_facade,

@@ -72,14 +72,24 @@ def sample_generation():
 
 # ─── create_generation ───────────────────────────────────────────────────────
 async def test_create_generation_delegates_to_entity_manager(
-    facade, mock_entity_manager, sample_generation,
+    facade, mock_entity_manager, sample_generation, monkeypatch,
 ):
+    # Мокаем Celery task'у — она вызывается через .delay() после create_*.
+    # Реальный broker в тестах не поднят.
+    from unittest.mock import MagicMock
+    mock_task = MagicMock()
+    monkeypatch.setattr(
+        "app.generation.domain.business.generation_task.run_generation_task",
+        mock_task,
+    )
+
     dto = GenerationCreateTransfer(prompt="лендинг", provider=None)
     mock_entity_manager.create.return_value = sample_generation
 
     result = await facade.create_generation(dto)
 
     mock_entity_manager.create.assert_awaited_once_with(dto)
+    mock_task.delay.assert_called_once_with(sample_generation.id)
     assert result is sample_generation
 
 

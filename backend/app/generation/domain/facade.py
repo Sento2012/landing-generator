@@ -24,7 +24,16 @@ class GenerationFacade:
         self,
         dto: GenerationCreateTransfer,
     ) -> GenerationTransfer:
-        return await self._factory.create_entity_manager().create(dto)
+        gen = await self._factory.create_entity_manager().create(dto)
+        # Импорт внутри метода — избегаем circular import при загрузке celery_app
+        # (он импортирует этот модуль через include=[...]).
+        from app.generation.domain.business.generation_task import run_generation_task
+        run_generation_task.delay(gen.id)
+        return gen
+
+    async def execute_generation(self, dto: GenerationByIdTransfer) -> None:
+        """Вызывается из Celery worker. Запускает реальную LLM-генерацию."""
+        await self._factory.create_executor().execute(dto.id)
 
     async def get_generation(
         self,
