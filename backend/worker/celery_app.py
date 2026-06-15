@@ -17,7 +17,9 @@ celery_app = Celery(
     # коротких результатов (мы не используем .get() — задача пишет в БД сама).
     backend="rpc://",
     include=[
-        "app.generation.domain.business.generation_task",
+        # Все task'и живут в backend/worker/. Если добавляется новая —
+        # дописать сюда (или сделать autodiscover'ы по worker.*).
+        "worker.generation_task",
     ],
 )
 

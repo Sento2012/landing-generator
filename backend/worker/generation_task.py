@@ -1,11 +1,12 @@
-"""Celery task — обёртка над GenerationExecutor для запуска в фоне.
+"""Celery task — worker-side entry point для генерации.
 
-Celery sync-first, поэтому внутри запускаем asyncio.run() на новом event loop'е.
+Тонкий мост между sync Celery worker'ом и async business логикой Generation.
+Получает gen_id из очереди, через composition root зовёт GenerationFacade.
 """
 import asyncio
 
 from app.generation.domain.business.task_names import GENERATION_RUN
-from app.shared.celery_app import celery_app
+from worker.celery_app import celery_app
 
 
 @celery_app.task(name=GENERATION_RUN)

@@ -22,8 +22,8 @@ from app.llm_anthropic.dependency_provider import build_anthropic_plugin
 from app.llm_openai.dependency_provider import build_openai_plugin
 from app.rabbitmq.dependency_provider import build_rabbitmq_facade
 from app.rabbitmq.domain.facade import RabbitmqFacade
-from app.shared.celery_app import celery_app
 from app.shared.database import SessionLocal
+from worker.celery_app import celery_app
 
 
 DEFAULT_LLM_PROVIDER = LlmProviderName(
