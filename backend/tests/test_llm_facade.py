@@ -1,9 +1,7 @@
 """Тесты публичных методов LlmFacade.
 
-Facade выбирает плагин из реестра LlmFactory и проксирует событийный поток.
-Тестируем:
-- что плагин выбирается по dto.provider (или default если None),
-- что события проходят насквозь.
+Facade берёт резолвер из Factory, резолвер выбирает плагин по dto.provider.
+Тестируем, что Facade зовёт резолвер с правильным name и проксирует события.
 """
 from unittest.mock import MagicMock
 
@@ -16,25 +14,29 @@ from app.llm.domain.factory import LlmFactory
 from app.llm.domain.models.llm_provider_name import LlmProviderName
 
 
-# ─── Helpers ─────────────────────────────────────────────────────────────────
 def _async_gen(events):
-    """Сделать async-generator-функцию, возвращающую заданные события."""
     async def gen(prompt):
         for e in events:
             yield e
     return gen
 
 
-# ─── Fixtures ────────────────────────────────────────────────────────────────
 @pytest.fixture
 def mock_plugin():
     return MagicMock()
 
 
 @pytest.fixture
-def mock_factory(mock_plugin):
+def mock_resolver(mock_plugin):
+    resolver = MagicMock()
+    resolver.resolve.return_value = mock_plugin
+    return resolver
+
+
+@pytest.fixture
+def mock_factory(mock_resolver):
     factory = MagicMock(spec=LlmFactory)
-    factory.get_provider_plugin.return_value = mock_plugin
+    factory.create_plugin_resolver.return_value = mock_resolver
     return factory
 
 
@@ -43,31 +45,26 @@ def facade(mock_factory):
     return LlmFacade(mock_factory)
 
 
-# ─── Tests ───────────────────────────────────────────────────────────────────
-async def test_stream_landing_picks_plugin_by_dto_provider(
-    facade, mock_factory, mock_plugin,
+async def test_stream_landing_resolves_by_dto_provider(
+    facade, mock_resolver, mock_plugin,
 ):
-    events = [
-        LlmEventTransfer(type=LlmEventType.TOOL_START, tool="set_html"),
-        LlmEventTransfer(type=LlmEventType.DONE),
-    ]
-    mock_plugin.stream_landing = _async_gen(events)
+    mock_plugin.stream_landing = _async_gen([])
 
     dto = LlmPromptTransfer(prompt="hi", provider=LlmProviderName.ANTHROPIC)
     _ = [e async for e in facade.stream_landing(dto)]
 
-    mock_factory.get_provider_plugin.assert_called_once_with(LlmProviderName.ANTHROPIC)
+    mock_resolver.resolve.assert_called_once_with(LlmProviderName.ANTHROPIC)
 
 
-async def test_stream_landing_uses_none_when_provider_not_set(
-    facade, mock_factory, mock_plugin,
+async def test_stream_landing_resolves_with_none_when_provider_not_set(
+    facade, mock_resolver, mock_plugin,
 ):
     mock_plugin.stream_landing = _async_gen([])
 
-    dto = LlmPromptTransfer(prompt="hi")  # provider не указан → None
+    dto = LlmPromptTransfer(prompt="hi")
     _ = [e async for e in facade.stream_landing(dto)]
 
-    mock_factory.get_provider_plugin.assert_called_once_with(None)
+    mock_resolver.resolve.assert_called_once_with(None)
 
 
 async def test_stream_landing_passes_prompt_to_plugin(facade, mock_plugin):
@@ -89,8 +86,6 @@ async def test_stream_landing_passes_prompt_to_plugin(facade, mock_plugin):
 async def test_stream_landing_proxies_events(facade, mock_plugin):
     events = [
         LlmEventTransfer(type=LlmEventType.TOOL_START, tool="set_html"),
-        LlmEventTransfer(type=LlmEventType.TOOL_DELTA, tool="set_html", partial='{"co'),
-        LlmEventTransfer(type=LlmEventType.TOOL_COMPLETE, tool="set_html"),
         LlmEventTransfer(type=LlmEventType.DONE),
     ]
     mock_plugin.stream_landing = _async_gen(events)

@@ -1,10 +1,7 @@
-"""Внутренняя фабрика Llm-модуля.
-
-Держит реестр доступных плагинов (по одному на провайдера) и default-имя.
-Выбор активного плагина — в момент вызова, по имени из LlmPromptTransfer.provider.
-"""
-from app.llm.domain.plugin.interface import LlmProviderPluginInterface
+"""Factory модуля Llm — хранит реестр плагинов и создаёт сервисы."""
+from app.llm.domain.business.plugin_resolver import LlmPluginResolver
 from app.llm.domain.models.llm_provider_name import LlmProviderName
+from app.llm.domain.plugin.interface import LlmProviderPluginInterface
 
 
 class LlmFactory:
@@ -13,23 +10,8 @@ class LlmFactory:
         plugins: dict[LlmProviderName, LlmProviderPluginInterface],
         default: LlmProviderName,
     ) -> None:
-        if default not in plugins:
-            raise ValueError(
-                f"Default provider {default!r} is not in plugins registry: "
-                f"{list(plugins.keys())}"
-            )
         self._plugins = plugins
         self._default = default
 
-    def get_provider_plugin(
-        self,
-        name: LlmProviderName | None = None,
-    ) -> LlmProviderPluginInterface:
-        chosen = name or self._default
-        try:
-            return self._plugins[chosen]
-        except KeyError:
-            available = [str(k) for k in self._plugins.keys()]
-            raise ValueError(
-                f"Unknown LLM provider: {chosen!r}. Available: {available}"
-            ) from None
+    def create_plugin_resolver(self) -> LlmPluginResolver:
+        return LlmPluginResolver(plugins=self._plugins, default=self._default)

@@ -1,9 +1,9 @@
 """Публичная дверь Llm-модуля. Тонкая — делегирует Factory."""
 from typing import AsyncIterator
 
-from app.llm.domain.factory import LlmFactory
 from app.llm.domain.dto.llm_event import LlmEventTransfer
 from app.llm.domain.dto.llm_prompt import LlmPromptTransfer
+from app.llm.domain.factory import LlmFactory
 
 
 class LlmFacade:
@@ -14,8 +14,7 @@ class LlmFacade:
         self,
         dto: LlmPromptTransfer,
     ) -> AsyncIterator[LlmEventTransfer]:
-        """Запустить генерацию по промпту. Провайдер выбирается из dto.provider
-        (если None — используется default из LlmFactory)."""
-        plugin = self._factory.get_provider_plugin(dto.provider)
+        resolver = self._factory.create_plugin_resolver()
+        plugin = resolver.resolve(dto.provider)
         async for event in plugin.stream_landing(dto.prompt):
             yield event
