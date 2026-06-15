@@ -4,18 +4,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Импорт сущностей, чтобы Base.metadata.create_all их увидел.
-# В каждом модуле, у которого есть таблицы — импортить entity тут.
-from app.generation.domain.models import entity  # noqa: F401  # registers GenerationEntity
 from app.generation.client.controller import router as generation_router
-from app.shared.database import Base, engine
+from app.shared.database import engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # В проде — Alembic. Тут create_all для простоты демо.
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Схема БД — через Alembic (см. сервис `migrate` в docker-compose.yml).
+    # Тут только cleanup на остановке.
     yield
     await engine.dispose()
 
