@@ -25,7 +25,6 @@ class LlmFactory:
         self,
         name: LlmProviderName | None = None,
     ) -> LlmProviderPluginInterface:
-        """Вернуть плагин по имени, либо default если не указан."""
         chosen = name or self._default
         try:
             return self._plugins[chosen]

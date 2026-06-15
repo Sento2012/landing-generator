@@ -17,7 +17,6 @@ def build_openai_plugin(
     system_prompt: str,
     tool_descriptions: dict[LlmToolName, dict[str, str]],
 ) -> OpenAiProviderPlugin:
-    """Собрать готовый плагин OpenAI со всеми зависимостями."""
     client = AsyncOpenAI(api_key=api_key)
     tools = build_openai_tools_schema(tool_descriptions)
     factory = OpenAiFactory(

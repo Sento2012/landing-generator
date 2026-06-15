@@ -13,6 +13,5 @@ def build_llm_facade(
     plugins: dict[LlmProviderName, LlmProviderPluginInterface],
     default: LlmProviderName,
 ) -> LlmFacade:
-    """Собрать LlmFacade с заданным реестром плагинов."""
     factory = LlmFactory(plugins=plugins, default=default)
     return LlmFacade(factory)

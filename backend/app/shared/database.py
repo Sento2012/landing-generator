@@ -14,7 +14,6 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 class Base(DeclarativeBase):
-    """Базовый класс для всех ORM-моделей разных модулей."""
     pass
 
 

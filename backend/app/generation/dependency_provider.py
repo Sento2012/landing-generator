@@ -15,7 +15,6 @@ def build_generation_facade(
     llm_facade: LlmFacade,
     default_provider: str,
 ) -> GenerationFacade:
-    """Собрать GenerationFacade со всеми зависимостями."""
     factory = GenerationFactory(
         session_factory=session_factory,
         llm_facade=llm_facade,

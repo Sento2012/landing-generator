@@ -10,7 +10,6 @@ from app.llm.domain.models.tool_name import LlmToolName
 def build_openai_tools_schema(
     tool_descriptions: dict[LlmToolName, dict[str, str]],
 ) -> list[dict]:
-    """Общие описания → OpenAI-формат."""
     return [
         {
             "type": "function",

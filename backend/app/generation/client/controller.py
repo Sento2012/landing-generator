@@ -63,5 +63,4 @@ async def get_generation(gen_id: int, facade: FacadeDep) -> GenerationResponse:
 # ─── Stream ──────────────────────────────────────────────────────────────────
 @router.get("/{gen_id}/stream")
 async def stream_generation(gen_id: int, facade: FacadeDep) -> StreamingResponse:
-    """SSE-стрим. shared.sse.stream_as_sse делает HTTP-обёртку."""
     return stream_as_sse(facade.stream_generation(GenerationByIdTransfer(id=gen_id)))

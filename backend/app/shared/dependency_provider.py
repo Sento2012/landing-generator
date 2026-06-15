@@ -31,7 +31,6 @@ DEFAULT_LLM_PROVIDER = LlmProviderName(
 # ─── Llm Facade ──────────────────────────────────────────────────────────────
 @lru_cache
 def get_llm_facade() -> LlmFacade:
-    """Собирает реестр всех плагинов и заворачивает в LlmFacade."""
     plugins = {
         LlmProviderName.OPENAI: build_openai_plugin(
             api_key=os.environ["OPENAI_API_KEY"],

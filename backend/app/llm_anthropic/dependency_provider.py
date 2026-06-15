@@ -20,7 +20,6 @@ def build_anthropic_plugin(
     system_prompt: str,
     tool_descriptions: dict[LlmToolName, dict[str, str]],
 ) -> AnthropicProviderPlugin:
-    """Собрать готовый плагин Anthropic со всеми зависимостями."""
     client = anthropic.AsyncAnthropic(api_key=api_key)
     tools = build_anthropic_tools_schema(tool_descriptions)
     factory = AnthropicFactory(

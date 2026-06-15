@@ -35,8 +35,6 @@ class AnthropicStreamLandingService:
         self,
         dto: LlmPromptTransfer,
     ) -> AsyncIterator[LlmEventTransfer]:
-        """Главный сценарий: открыть стрим, транслировать чанки в события,
-        собрать финальный результат."""
         try:
             async with self._open_stream(dto.prompt) as stream:
                 async for event in self._translate_chunks(stream):
@@ -60,7 +58,6 @@ class AnthropicStreamLandingService:
 
     # ─── Steps ───────────────────────────────────────────────────────────────
     def _open_stream(self, prompt: str):
-        """Открыть async context manager стрима Anthropic с нашими параметрами."""
         return self._client.messages.stream(
             model=self._model,
             max_tokens=16000,

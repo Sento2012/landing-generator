@@ -41,7 +41,6 @@ class OpenAiStreamLandingService:
         self,
         dto: LlmPromptTransfer,
     ) -> AsyncIterator[LlmEventTransfer]:
-        """Открыть стрим, транслировать чанки в события, собрать результат."""
         try:
             stream = await self._open_stream(dto.prompt)
 
@@ -66,7 +65,6 @@ class OpenAiStreamLandingService:
 
     # ─── Steps ───────────────────────────────────────────────────────────────
     async def _open_stream(self, prompt: str):
-        """Открыть OpenAI streaming chat completion."""
         return await self._client.chat.completions.create(
             model=self._model,
             messages=[
