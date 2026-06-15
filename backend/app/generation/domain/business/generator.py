@@ -15,7 +15,7 @@ from app.llm.domain.dto.landing_result import LandingResultTransfer
 from app.llm.domain.dto.llm_event import LlmEventTransfer, LlmEventType
 
 POLL_INTERVAL_SECONDS = 0.5
-MAX_WAIT_SECONDS = 600   # 10 минут — если за это время не завершилось, отдаём timeout
+MAX_WAIT_SECONDS = 600
 
 
 class GenerationStreamingGenerator:
