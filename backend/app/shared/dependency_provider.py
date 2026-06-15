@@ -20,6 +20,9 @@ from app.llm.domain.models.llm_provider_name import LlmProviderName
 from app.llm.domain.prompt import SYSTEM_PROMPT, TOOL_DESCRIPTIONS
 from app.llm_anthropic.dependency_provider import build_anthropic_plugin
 from app.llm_openai.dependency_provider import build_openai_plugin
+from app.rabbitmq.dependency_provider import build_rabbitmq_facade
+from app.rabbitmq.domain.facade import RabbitmqFacade
+from app.shared.celery_app import celery_app
 from app.shared.database import SessionLocal
 
 
@@ -48,11 +51,18 @@ def get_llm_facade() -> LlmFacade:
     return build_llm_facade(plugins=plugins, default=DEFAULT_LLM_PROVIDER)
 
 
+# ─── Rabbitmq Facade ─────────────────────────────────────────────────────────
+@lru_cache
+def get_rabbitmq_facade() -> RabbitmqFacade:
+    return build_rabbitmq_facade(celery_app)
+
+
 # ─── Generation Facade ───────────────────────────────────────────────────────
 @lru_cache
 def get_generation_facade() -> GenerationFacade:
     return build_generation_facade(
         session_factory=SessionLocal,
         llm_facade=get_llm_facade(),
+        rabbitmq_facade=get_rabbitmq_facade(),
         default_provider=str(DEFAULT_LLM_PROVIDER),
     )

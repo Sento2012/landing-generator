@@ -45,11 +45,17 @@ def mock_generator():
 
 
 @pytest.fixture
-def mock_factory(mock_repository, mock_entity_manager, mock_generator):
+def mock_scheduler():
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_factory(mock_repository, mock_entity_manager, mock_generator, mock_scheduler):
     factory = MagicMock(spec=GenerationFactory)
     factory.create_repository.return_value = mock_repository
     factory.create_entity_manager.return_value = mock_entity_manager
     factory.create_generator.return_value = mock_generator
+    factory.create_scheduler.return_value = mock_scheduler
     return factory
 
 
@@ -71,25 +77,15 @@ def sample_generation():
 
 
 # ─── create_generation ───────────────────────────────────────────────────────
-async def test_create_generation_delegates_to_entity_manager(
-    facade, mock_entity_manager, sample_generation, monkeypatch,
+async def test_create_generation_delegates_to_scheduler(
+    facade, mock_scheduler, sample_generation,
 ):
-    # Мокаем Celery task'у — она вызывается через .delay() после create_*.
-    # Реальный broker в тестах не поднят.
-    from unittest.mock import MagicMock
-    mock_task = MagicMock()
-    monkeypatch.setattr(
-        "app.generation.domain.business.generation_task.run_generation_task",
-        mock_task,
-    )
-
     dto = GenerationCreateTransfer(prompt="лендинг", provider=None)
-    mock_entity_manager.create.return_value = sample_generation
+    mock_scheduler.schedule.return_value = sample_generation
 
     result = await facade.create_generation(dto)
 
-    mock_entity_manager.create.assert_awaited_once_with(dto)
-    mock_task.delay.assert_called_once_with(sample_generation.id)
+    mock_scheduler.schedule.assert_awaited_once_with(dto)
     assert result is sample_generation
 
 

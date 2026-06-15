@@ -5,7 +5,6 @@ AsyncIterator[Transfer]. Никаких голых int/str/dict.
 """
 from typing import AsyncIterator
 
-from app.generation.domain.factory import GenerationFactory
 from app.generation.domain.dto.generation import GenerationTransfer
 from app.generation.domain.dto.generation_by_id import GenerationByIdTransfer
 from app.generation.domain.dto.generation_create import GenerationCreateTransfer
@@ -13,6 +12,7 @@ from app.generation.domain.dto.generation_list import GenerationListTransfer
 from app.generation.domain.dto.generation_list_criteria import (
     GenerationListCriteriaTransfer,
 )
+from app.generation.domain.factory import GenerationFactory
 from app.llm.domain.dto.llm_event import LlmEventTransfer
 
 
@@ -24,12 +24,7 @@ class GenerationFacade:
         self,
         dto: GenerationCreateTransfer,
     ) -> GenerationTransfer:
-        gen = await self._factory.create_entity_manager().create(dto)
-        # Импорт внутри метода — избегаем circular import при загрузке celery_app
-        # (он импортирует этот модуль через include=[...]).
-        from app.generation.domain.business.generation_task import run_generation_task
-        run_generation_task.delay(gen.id)
-        return gen
+        return await self._factory.create_scheduler().schedule(dto)
 
     async def execute_generation(self, dto: GenerationByIdTransfer) -> None:
         """Вызывается из Celery worker. Запускает реальную LLM-генерацию."""
