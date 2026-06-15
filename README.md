@@ -122,27 +122,6 @@ docker compose exec backend python -m pytest tests/ -v
 29 тестов на public API всех Facade'ов и HTTP endpoint'ов. Все мокаются ниже Facade —
 ни реальный LLM, ни реальный broker, ни реальная БД не нужны. Прогон ~0.7s.
 
-## Что специально не сделано
-
-- **Per-token SSE streaming.** Сейчас события идут через polling БД (раз в 0.5s). Для
-  fine-grained стрима (TOOL_DELTA per character как у ChatGPT) нужен Redis pub/sub
-  канал на `gen_id` между worker и SSE endpoint. Описано в `AGENTS.md`.
-- **Auth.** API открыт. Скилл для добавления — [docs/skills/add-module.md](docs/skills/add-module.md)
-  показывает паттерн на примере `user`-модуля.
-- **Observability.** Нет structured logging, метрик, tracing — нужны для прода.
-- **CI.** Нет GitHub Actions workflow — был бы один из самых дешёвых wins.
-
-## Что внутри для собеседования
-
-- **Layered architecture** на Python — нечастая вещь, обычно встречается в PHP/Java мире.
-- **Plugin pattern** для LLM с чистым swap'ом провайдера через composition root.
-- **DTO discipline** на каждой границе: client DTO ↔ business Transfer.
-- **Celery + RabbitMQ** для фоновой обработки, sync↔async bridge через `asyncio.run`.
-- **Alembic** с async-config, отдельный `migrate` сервис в compose.
-- **Streaming с tool use** — нетривиальная унификация OpenAI и Anthropic streaming-протоколов.
-- **Тесты** только на public API, всё внутреннее замокано — быстрые и устойчивые к рефакторингу.
-- **Composition root** как единственная точка чтения env.
-
 ## Структура полностью
 
 ```

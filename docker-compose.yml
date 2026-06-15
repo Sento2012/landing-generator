@@ -99,6 +99,7 @@ services:
     volumes:
       - ./frontend/src:/code/src
       - ./frontend/index.html:/code/index.html
+      - ./frontend/vite.config.ts:/code/vite.config.ts
 
 volumes:
   pgdata:

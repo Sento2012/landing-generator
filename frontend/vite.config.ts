@@ -14,6 +14,10 @@ export default defineConfig({
         target: "http://backend:8000",
         changeOrigin: true,
       },
+      // Чтобы Swagger UI работал через тот же origin что и фронт
+      "/docs": { target: "http://backend:8000", changeOrigin: true },
+      "/redoc": { target: "http://backend:8000", changeOrigin: true },
+      "/openapi.json": { target: "http://backend:8000", changeOrigin: true },
     },
     watch: {
       usePolling: true,  // нужно для hot reload внутри Docker на некоторых системах

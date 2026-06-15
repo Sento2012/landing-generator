@@ -27,7 +27,9 @@ async function createGeneration(prompt: string): Promise<{ id: number }> {
 async function loadHistory(): Promise<HistoryItem[]> {
   const r = await fetch("/api/generations");
   if (!r.ok) return [];
-  return r.json();
+  const data = await r.json();
+  // API теперь отдаёт envelope { items: [...] }; раньше был плоский массив.
+  return Array.isArray(data) ? data : (data.items ?? []);
 }
 
 async function loadGeneration(id: number): Promise<GenResult | null> {
