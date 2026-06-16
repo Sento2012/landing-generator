@@ -108,6 +108,7 @@ async def _read_loop(websocket: WebSocket, user_id: int) -> None:
             continue
 
         if msg.get("type") == "ping":
+            logger.info("WS ping ← user=%s; pong →", user_id)
             await websocket.send_text(json.dumps({"type": "pong"}))
 
 

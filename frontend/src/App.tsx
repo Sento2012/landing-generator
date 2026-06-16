@@ -265,17 +265,24 @@ function useGenerationSocket(
       wsRef.current = ws;
 
       ws.onopen = () => {
+        console.log("[WS] open");
         onStatusRef.current(true);
-        pingTimerRef.current = window.setInterval(() => {
+        const sendPing = () => {
           if (ws.readyState === WebSocket.OPEN) {
+            console.log("[WS] → ping");
             ws.send(JSON.stringify({ type: "ping" }));
           }
-        }, PING_INTERVAL_MS);
+        };
+        sendPing();   // первый сразу, чтобы убедиться что коннект живой
+        pingTimerRef.current = window.setInterval(sendPing, PING_INTERVAL_MS);
       };
 
       ws.onmessage = (e) => {
         const msg = JSON.parse(e.data);
-        if (msg?.type === "pong") return;
+        if (msg?.type === "pong") {
+          console.log("[WS] ← pong");
+          return;
+        }
         onEventRef.current(msg as WsGenEvent);
       };
 
