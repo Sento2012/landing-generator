@@ -1,7 +1,7 @@
 """ORM-сущность Generation. Единственный файл, импортирующий SQLAlchemy в этом модуле."""
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.generation.domain.models.status import GenerationStatus
@@ -12,6 +12,8 @@ class GenerationEntity(Base):
     __tablename__ = "generations"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    # Владелец — для multi-tenancy и ownership-проверок в HTTP-слое.
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     prompt: Mapped[str] = mapped_column(Text)
     # Хранится как строка в БД, но в Python — GenerationStatus (StrEnum)
     status: Mapped[str] = mapped_column(String(20), default=GenerationStatus.PENDING)

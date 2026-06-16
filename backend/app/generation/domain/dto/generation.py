@@ -9,6 +9,7 @@ class GenerationTransfer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: int
     prompt: str
     status: str
     provider: str
@@ -25,6 +26,7 @@ class GenerationListItemTransfer(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: int
     prompt: str
     status: str
     provider: str

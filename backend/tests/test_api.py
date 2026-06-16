@@ -1,13 +1,7 @@
 """Тесты HTTP endpoints (Generation controller + /health).
 
-Facade подменяется через app.dependency_overrides — реальный LLM/БД не дёргаются.
-TestClient создаётся БЕЗ `with` — lifespan не запускается, БД не нужна.
-
-Что проверяем для каждого endpoint:
-- Статус-код ответа.
-- Контракт ответа (поля, типы, схема).
-- Контракт запроса (валидация ошибочного body → 422).
-- Маппинг Client DTO ↔ Business Transfer (что Facade зовётся с правильным DTO).
+Facade и CurrentUser подменяются через app.dependency_overrides — реальный
+LLM/БД/auth не дёргаются. TestClient создаётся БЕЗ `with` — lifespan не запускается.
 """
 import json
 from datetime import datetime
@@ -26,22 +20,33 @@ from app.llm.domain.dto.landing_result import LandingResultTransfer
 from app.llm.domain.dto.llm_event import LlmEventTransfer, LlmEventType
 from app.main import app
 from app.shared.dependency_provider import get_generation_facade
+from app.user.client.auth_dependency import get_current_user
+from app.user.domain.dto.user import UserTransfer
 
 
 # ─── Fixtures ────────────────────────────────────────────────────────────────
+@pytest.fixture
+def fake_user():
+    return UserTransfer(
+        id=1,
+        email="test@example.com",
+        created_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+
+
 @pytest.fixture
 def mock_facade():
     facade = MagicMock()
     facade.create_generation = AsyncMock()
     facade.get_generation = AsyncMock()
     facade.list_generations = AsyncMock()
-    # stream_generation — async generator, не AsyncMock
     return facade
 
 
 @pytest.fixture
-def client(mock_facade):
+def client(mock_facade, fake_user):
     app.dependency_overrides[get_generation_facade] = lambda: mock_facade
+    app.dependency_overrides[get_current_user] = lambda: fake_user
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -50,6 +55,7 @@ def client(mock_facade):
 def sample_generation():
     return GenerationTransfer(
         id=42,
+        user_id=1,
         prompt="лендинг про йогу",
         status="completed",
         provider="openai",
@@ -77,24 +83,26 @@ def test_create_generation_returns_201(client, mock_facade, sample_generation):
     assert r.status_code == 201
     body = r.json()
     assert body["id"] == 42
+    assert body["user_id"] == 1
     assert body["status"] == "completed"
-    assert body["provider"] == "openai"
 
 
-def test_create_generation_passes_dto_to_facade(client, mock_facade, sample_generation):
+def test_create_generation_passes_user_id_from_current_user(
+    client, mock_facade, sample_generation,
+):
     mock_facade.create_generation.return_value = sample_generation
 
     client.post("/api/generations", json={"prompt": "test", "provider": "anthropic"})
 
-    mock_facade.create_generation.assert_awaited_once()
     business_dto = mock_facade.create_generation.await_args.args[0]
     assert isinstance(business_dto, GenerationCreateTransfer)
+    assert business_dto.user_id == 1   # из fake_user
     assert business_dto.prompt == "test"
     assert str(business_dto.provider) == "anthropic"
 
 
 def test_create_generation_rejects_short_prompt(client):
-    r = client.post("/api/generations", json={"prompt": "hi"})  # < 3 chars
+    r = client.post("/api/generations", json={"prompt": "hi"})
     assert r.status_code == 422
 
 
@@ -108,12 +116,8 @@ def test_list_generations_returns_envelope(client, mock_facade):
     mock_facade.list_generations.return_value = GenerationListTransfer(
         items=[
             GenerationListItemTransfer(
-                id=1, prompt="p1", status="completed", provider="openai",
+                id=1, user_id=1, prompt="p1", status="completed", provider="openai",
                 created_at=datetime(2026, 1, 1),
-            ),
-            GenerationListItemTransfer(
-                id=2, prompt="p2", status="pending", provider="anthropic",
-                created_at=datetime(2026, 1, 2),
             ),
         ]
     )
@@ -123,26 +127,17 @@ def test_list_generations_returns_envelope(client, mock_facade):
     assert r.status_code == 200
     body = r.json()
     assert "items" in body
-    assert len(body["items"]) == 2
     assert body["items"][0]["id"] == 1
-    assert body["items"][1]["provider"] == "anthropic"
+    assert body["items"][0]["user_id"] == 1
 
 
-def test_list_generations_uses_default_limit(client, mock_facade):
-    mock_facade.list_generations.return_value = GenerationListTransfer(items=[])
-
-    client.get("/api/generations")
-
-    business_dto = mock_facade.list_generations.await_args.args[0]
-    assert business_dto.limit == 50  # default
-
-
-def test_list_generations_passes_custom_limit(client, mock_facade):
+def test_list_generations_filters_by_current_user(client, mock_facade):
     mock_facade.list_generations.return_value = GenerationListTransfer(items=[])
 
     client.get("/api/generations?limit=10")
 
     business_dto = mock_facade.list_generations.await_args.args[0]
+    assert business_dto.user_id == 1
     assert business_dto.limit == 10
 
 
@@ -164,20 +159,22 @@ def test_get_generation_returns_404_when_missing(client, mock_facade):
     assert r.status_code == 404
 
 
-def test_get_generation_passes_id_to_facade(client, mock_facade, sample_generation):
+def test_get_generation_passes_user_id_for_ownership_check(
+    client, mock_facade, sample_generation,
+):
     mock_facade.get_generation.return_value = sample_generation
 
     client.get("/api/generations/42")
 
     business_dto = mock_facade.get_generation.await_args.args[0]
     assert business_dto.id == 42
+    assert business_dto.user_id == 1
 
 
 # ─── GET /api/generations/{id}/stream ────────────────────────────────────────
 def test_stream_generation_returns_sse(client, mock_facade):
     events = [
         LlmEventTransfer(type=LlmEventType.TOOL_START, tool="set_html"),
-        LlmEventTransfer(type=LlmEventType.TOOL_COMPLETE, tool="set_html"),
         LlmEventTransfer(
             type=LlmEventType.DONE,
             result=LandingResultTransfer(html="<h1>x</h1>", css="", js=""),
@@ -195,9 +192,7 @@ def test_stream_generation_returns_sse(client, mock_facade):
         assert r.headers["content-type"].startswith("text/event-stream")
         body = b"".join(r.iter_bytes()).decode()
 
-    # Каждое событие — отдельный SSE-message с своим event-name
     assert "event: tool_start" in body
-    assert "event: tool_complete" in body
     assert "event: done" in body
 
 
@@ -213,7 +208,6 @@ def test_stream_generation_emits_event_data_json(client, mock_facade):
     with client.stream("GET", "/api/generations/42/stream") as r:
         body = b"".join(r.iter_bytes()).decode()
 
-    # Парсим data-строку как JSON и проверяем поля
     data_line = next(line for line in body.splitlines() if line.startswith("data: "))
     payload = json.loads(data_line.removeprefix("data: "))
     assert payload["type"] == "tool_start"

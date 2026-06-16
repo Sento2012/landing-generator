@@ -21,13 +21,13 @@ def run_generation_task(gen_id: int) -> None:
 
 
 async def _run_async(gen_id: int) -> None:
-    from app.generation.domain.dto.generation_by_id import GenerationByIdTransfer
+    from app.generation.domain.dto.generation_execute import GenerationExecuteTransfer
     from app.shared.database import engine
     from app.shared.dependency_provider import get_generation_facade
 
     facade = get_generation_facade()
     try:
-        await facade.execute_generation(GenerationByIdTransfer(id=gen_id))
+        await facade.execute_generation(GenerationExecuteTransfer(id=gen_id))
     finally:
         # См. docstring модуля
         await engine.dispose()

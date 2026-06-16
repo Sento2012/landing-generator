@@ -23,6 +23,7 @@ class GenerationEntityManager:
         provider = str(dto.provider) if dto.provider else self._default_provider
         async with self._session_factory() as session:
             entity = GenerationEntity(
+                user_id=dto.user_id,
                 prompt=dto.prompt,
                 status=GenerationStatus.PENDING,
                 provider=provider,

@@ -3,12 +3,13 @@
 Сам не делает LLM-работу — это задача Executor'а, который крутится в Celery worker.
 Этот класс polls БД и эмитит события клиенту по смене статуса.
 
-Granularity: мы видим переход pending → running → completed/failed.
+Granularity: переход pending → running → completed/failed.
 Tool-by-tool deltas не доступны (для них нужен pub/sub между worker и SSE).
 """
 import asyncio
 from typing import AsyncIterator
 
+from app.generation.domain.dto.generation_by_id import GenerationByIdTransfer
 from app.generation.domain.models.status import GenerationStatus
 from app.generation.domain.persistence.repository import GenerationRepository
 from app.llm.domain.dto.landing_result import LandingResultTransfer
@@ -22,12 +23,15 @@ class GenerationStreamingGenerator:
     def __init__(self, repository: GenerationRepository) -> None:
         self._repo = repository
 
-    async def stream(self, gen_id: int) -> AsyncIterator[LlmEventTransfer]:
+    async def stream(
+        self,
+        dto: GenerationByIdTransfer,
+    ) -> AsyncIterator[LlmEventTransfer]:
         deadline = asyncio.get_event_loop().time() + MAX_WAIT_SECONDS
         emitted_running = False
 
         while True:
-            gen = await self._repo.find_by_id(gen_id)
+            gen = await self._repo.find_by_id_for_user(dto.id, dto.user_id)
             if gen is None:
                 yield LlmEventTransfer(
                     type=LlmEventType.ERROR,
