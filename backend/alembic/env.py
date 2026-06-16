@@ -18,6 +18,7 @@ from alembic import context
 # в проекте появляется новая entity — импортить её тут.
 from app.shared.database import Base  # noqa: E402
 from app.generation.domain.models import entity as _gen_entity  # noqa: E402, F401
+from app.user.domain.models import entity as _user_entity  # noqa: E402, F401
 
 
 config = context.config

@@ -13,8 +13,10 @@ class TaskPublisher:
         self._celery = celery_app
 
     def publish(self, message: TaskMessage) -> None:
-        self._celery.send_task(
-            message.task_name,
-            args=message.args,
-            kwargs=message.kwargs,
-        )
+        send_kwargs: dict = {
+            "args": message.args,
+            "kwargs": message.kwargs,
+        }
+        if message.queue:
+            send_kwargs["queue"] = message.queue
+        self._celery.send_task(message.task_name, **send_kwargs)

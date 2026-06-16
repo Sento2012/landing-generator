@@ -5,13 +5,12 @@
 - знает обо ВСЕХ модулях и подключаемых плагинах,
 - кеширует собранные Facade (один инстанс на жизнь app),
 - отдаёт их FastAPI через Depends().
-
-Сами модули ничего не знают друг про друга — каждый module/dependency_provider.py
-билдит только свой собственный stack из переданных параметров.
 """
 import os
 from functools import lru_cache
 
+from app.email.dependency_provider import build_email_facade
+from app.email.domain.facade import EmailFacade
 from app.generation.dependency_provider import build_generation_facade
 from app.generation.domain.facade import GenerationFacade
 from app.llm.dependency_provider import build_llm_facade
@@ -23,6 +22,8 @@ from app.llm_openai.dependency_provider import build_openai_plugin
 from app.rabbitmq.dependency_provider import build_rabbitmq_facade
 from app.rabbitmq.domain.facade import RabbitmqFacade
 from app.shared.database import SessionLocal
+from app.user.dependency_provider import build_user_facade
+from app.user.domain.facade import UserFacade
 from worker.celery_app import celery_app
 
 
@@ -55,6 +56,28 @@ def get_llm_facade() -> LlmFacade:
 @lru_cache
 def get_rabbitmq_facade() -> RabbitmqFacade:
     return build_rabbitmq_facade(celery_app)
+
+
+# ─── Email Facade ────────────────────────────────────────────────────────────
+@lru_cache
+def get_email_facade() -> EmailFacade:
+    return build_email_facade(
+        rabbitmq_facade=get_rabbitmq_facade(),
+        smtp_host=os.environ.get("SMTP_HOST", "mailhog"),
+        smtp_port=int(os.environ.get("SMTP_PORT", "1025")),
+        smtp_from=os.environ.get("SMTP_FROM", "noreply@landing-generator.local"),
+    )
+
+
+# ─── User Facade ─────────────────────────────────────────────────────────────
+@lru_cache
+def get_user_facade() -> UserFacade:
+    return build_user_facade(
+        session_factory=SessionLocal,
+        email_facade=get_email_facade(),
+        jwt_secret=os.environ.get("JWT_SECRET", "dev-secret-change-me"),
+        jwt_expires_minutes=int(os.environ.get("JWT_EXPIRES_MINUTES", "30")),
+    )
 
 
 # ─── Generation Facade ───────────────────────────────────────────────────────

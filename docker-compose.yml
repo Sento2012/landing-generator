@@ -24,6 +24,12 @@ services:
       interval: 10s
       retries: 5
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"       # SMTP
+      - "8025:8025"       # web UI
+
   migrate:
     build: ./backend
     command: alembic upgrade head
@@ -49,6 +55,11 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
       CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_EXPIRES_MINUTES: ${JWT_EXPIRES_MINUTES:-30}
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_FROM: ${SMTP_FROM:-noreply@landing-generator.local}
       PYTHONUNBUFFERED: "1"
     depends_on:
       postgres:
@@ -67,7 +78,7 @@ services:
 
   celery_worker:
     build: ./backend
-    command: celery -A worker.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A worker.celery_app worker --loglevel=info --concurrency=2 -Q generations
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-landing}:${POSTGRES_PASSWORD:-landing}@postgres:5432/${POSTGRES_DB:-landing}
       LLM_PROVIDER: ${LLM_PROVIDER:-openai}
@@ -76,6 +87,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
       CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       PYTHONUNBUFFERED: "1"
     depends_on:
       postgres:
@@ -84,6 +96,25 @@ services:
         condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
+    volumes:
+      - ./backend/app:/code/app
+      - ./backend/worker:/code/worker
+
+  celery_email_worker:
+    build: ./backend
+    command: celery -A worker.celery_app worker --loglevel=info --concurrency=2 -Q emails
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-landing}:${POSTGRES_PASSWORD:-landing}@postgres:5432/${POSTGRES_DB:-landing}
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      SMTP_HOST: ${SMTP_HOST:-mailhog}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_FROM: ${SMTP_FROM:-noreply@landing-generator.local}
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
     volumes:
       - ./backend/app:/code/app
       - ./backend/worker:/code/worker

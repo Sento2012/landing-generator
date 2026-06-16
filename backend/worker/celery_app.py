@@ -20,6 +20,7 @@ celery_app = Celery(
         # Все task'и живут в backend/worker/. Если добавляется новая —
         # дописать сюда (или сделать autodiscover'ы по worker.*).
         "worker.generation_task",
+        "worker.email_task",
     ],
 )
 
