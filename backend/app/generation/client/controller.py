@@ -3,23 +3,24 @@
 Все endpoint'ы protected — требуют JWT в Authorization header.
 user_id берётся из current_user (не из body / query), что предотвращает
 подделку через сетевой запрос.
+
+Live-события генерации больше не идут через HTTP — клиент держит WebSocket
+к отдельному ws-сервису и получает их оттуда.
 """
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
 
 from app.generation.client.dto.create_generation_request import CreateGenerationRequest
 from app.generation.client.dto.generation_list_response import GenerationListResponse
 from app.generation.client.dto.generation_response import GenerationResponse
-from app.generation.domain.facade import GenerationFacade
 from app.generation.domain.dto.generation_by_id import GenerationByIdTransfer
 from app.generation.domain.dto.generation_create import GenerationCreateTransfer
 from app.generation.domain.dto.generation_list_criteria import (
     GenerationListCriteriaTransfer,
 )
+from app.generation.domain.facade import GenerationFacade
 from app.shared.dependency_provider import get_generation_facade
-from app.shared.sse import stream_as_sse
 from app.user.client.auth_dependency import CurrentUser
 
 router = APIRouter(prefix="/api/generations", tags=["generations"])
@@ -68,14 +69,3 @@ async def get_generation(
     if result is None:
         raise HTTPException(404, "Generation not found")
     return GenerationResponse.model_validate(result.model_dump())
-
-
-@router.get("/{gen_id}/stream")
-async def stream_generation(
-    gen_id: int,
-    current_user: CurrentUser,
-    facade: FacadeDep,
-) -> StreamingResponse:
-    return stream_as_sse(facade.stream_generation(
-        GenerationByIdTransfer(id=gen_id, user_id=current_user.id)
-    ))

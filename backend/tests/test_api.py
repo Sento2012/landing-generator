@@ -3,7 +3,6 @@
 Facade и CurrentUser подменяются через app.dependency_overrides — реальный
 LLM/БД/auth не дёргаются. TestClient создаётся БЕЗ `with` — lifespan не запускается.
 """
-import json
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -16,15 +15,12 @@ from app.generation.domain.dto.generation import (
 )
 from app.generation.domain.dto.generation_create import GenerationCreateTransfer
 from app.generation.domain.dto.generation_list import GenerationListTransfer
-from app.llm.domain.dto.landing_result import LandingResultTransfer
-from app.llm.domain.dto.llm_event import LlmEventTransfer, LlmEventType
 from app.main import app
 from app.shared.dependency_provider import get_generation_facade
 from app.user.client.auth_dependency import get_current_user
 from app.user.domain.dto.user import UserTransfer
 
 
-# ─── Fixtures ────────────────────────────────────────────────────────────────
 @pytest.fixture
 def fake_user():
     return UserTransfer(
@@ -96,7 +92,7 @@ def test_create_generation_passes_user_id_from_current_user(
 
     business_dto = mock_facade.create_generation.await_args.args[0]
     assert isinstance(business_dto, GenerationCreateTransfer)
-    assert business_dto.user_id == 1   # из fake_user
+    assert business_dto.user_id == 1
     assert business_dto.prompt == "test"
     assert str(business_dto.provider) == "anthropic"
 
@@ -169,46 +165,3 @@ def test_get_generation_passes_user_id_for_ownership_check(
     business_dto = mock_facade.get_generation.await_args.args[0]
     assert business_dto.id == 42
     assert business_dto.user_id == 1
-
-
-# ─── GET /api/generations/{id}/stream ────────────────────────────────────────
-def test_stream_generation_returns_sse(client, mock_facade):
-    events = [
-        LlmEventTransfer(type=LlmEventType.TOOL_START, tool="set_html"),
-        LlmEventTransfer(
-            type=LlmEventType.DONE,
-            result=LandingResultTransfer(html="<h1>x</h1>", css="", js=""),
-        ),
-    ]
-
-    async def fake_stream(dto):
-        for e in events:
-            yield e
-
-    mock_facade.stream_generation = fake_stream
-
-    with client.stream("GET", "/api/generations/42/stream") as r:
-        assert r.status_code == 200
-        assert r.headers["content-type"].startswith("text/event-stream")
-        body = b"".join(r.iter_bytes()).decode()
-
-    assert "event: tool_start" in body
-    assert "event: done" in body
-
-
-def test_stream_generation_emits_event_data_json(client, mock_facade):
-    events = [LlmEventTransfer(type=LlmEventType.TOOL_START, tool="set_html")]
-
-    async def fake_stream(dto):
-        for e in events:
-            yield e
-
-    mock_facade.stream_generation = fake_stream
-
-    with client.stream("GET", "/api/generations/42/stream") as r:
-        body = b"".join(r.iter_bytes()).decode()
-
-    data_line = next(line for line in body.splitlines() if line.startswith("data: "))
-    payload = json.loads(data_line.removeprefix("data: "))
-    assert payload["type"] == "tool_start"
-    assert payload["tool"] == "set_html"

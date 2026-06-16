@@ -1,6 +1,4 @@
 """Публичная дверь Generation-модуля."""
-from typing import AsyncIterator
-
 from app.generation.domain.dto.generation import GenerationTransfer
 from app.generation.domain.dto.generation_by_id import GenerationByIdTransfer
 from app.generation.domain.dto.generation_create import GenerationCreateTransfer
@@ -10,7 +8,6 @@ from app.generation.domain.dto.generation_list_criteria import (
     GenerationListCriteriaTransfer,
 )
 from app.generation.domain.factory import GenerationFactory
-from app.llm.domain.dto.llm_event import LlmEventTransfer
 
 
 class GenerationFacade:
@@ -43,10 +40,3 @@ class GenerationFacade:
             dto.user_id, dto.limit,
         )
         return GenerationListTransfer(items=items)
-
-    async def stream_generation(
-        self,
-        dto: GenerationByIdTransfer,
-    ) -> AsyncIterator[LlmEventTransfer]:
-        async for event in self._factory.create_generator().stream(dto):
-            yield event

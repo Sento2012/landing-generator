@@ -17,8 +17,6 @@ from app.generation.domain.dto.generation_list_criteria import (
 )
 from app.generation.domain.facade import GenerationFacade
 from app.generation.domain.factory import GenerationFactory
-from app.llm.domain.dto.landing_result import LandingResultTransfer
-from app.llm.domain.dto.llm_event import LlmEventTransfer, LlmEventType
 
 
 @pytest.fixture
@@ -32,11 +30,6 @@ def mock_entity_manager():
 
 
 @pytest.fixture
-def mock_generator():
-    return MagicMock()
-
-
-@pytest.fixture
 def mock_scheduler():
     return AsyncMock()
 
@@ -47,13 +40,10 @@ def mock_executor():
 
 
 @pytest.fixture
-def mock_factory(
-    mock_repository, mock_entity_manager, mock_generator, mock_scheduler, mock_executor,
-):
+def mock_factory(mock_repository, mock_entity_manager, mock_scheduler, mock_executor):
     factory = MagicMock(spec=GenerationFactory)
     factory.create_repository.return_value = mock_repository
     factory.create_entity_manager.return_value = mock_entity_manager
-    factory.create_generator.return_value = mock_generator
     factory.create_scheduler.return_value = mock_scheduler
     factory.create_executor.return_value = mock_executor
     return factory
@@ -137,48 +127,3 @@ async def test_list_generations_wraps_items_in_envelope(facade, mock_repository)
     mock_repository.list_recent_by_user.assert_awaited_once_with(1, 10)
     assert isinstance(result, GenerationListTransfer)
     assert result.items == items
-
-
-# ─── stream_generation ───────────────────────────────────────────────────────
-async def test_stream_generation_yields_events_from_generator(facade, mock_generator):
-    events = [
-        LlmEventTransfer(type=LlmEventType.TOOL_START, tool="set_html"),
-        LlmEventTransfer(
-            type=LlmEventType.DONE,
-            result=LandingResultTransfer(html="<h1>hi</h1>", css="", js=""),
-        ),
-    ]
-
-    async def fake_stream(dto):
-        for e in events:
-            yield e
-
-    mock_generator.stream = fake_stream
-
-    collected = [
-        e async for e in facade.stream_generation(
-            GenerationByIdTransfer(id=42, user_id=1)
-        )
-    ]
-    assert collected == events
-
-
-async def test_stream_generation_passes_dto_with_user(facade, mock_generator):
-    captured = []
-
-    async def fake_stream(dto):
-        captured.append(dto)
-        if False:
-            yield
-
-    mock_generator.stream = fake_stream
-
-    _ = [
-        e async for e in facade.stream_generation(
-            GenerationByIdTransfer(id=7, user_id=99)
-        )
-    ]
-
-    assert len(captured) == 1
-    assert captured[0].id == 7
-    assert captured[0].user_id == 99

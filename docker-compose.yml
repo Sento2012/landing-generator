@@ -100,6 +100,27 @@ services:
       - ./backend/app:/code/app
       - ./backend/worker:/code/worker
 
+  ws:
+    build: ./backend
+    command: uvicorn ws.main:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-landing}:${POSTGRES_PASSWORD:-landing}@postgres:5432/${POSTGRES_DB:-landing}
+      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend/app:/code/app
+      - ./backend/ws:/code/ws
+
   celery_email_worker:
     build: ./backend
     command: celery -A worker.celery_app worker --loglevel=info --concurrency=2 -Q emails

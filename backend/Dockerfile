@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY app ./app
 COPY worker ./worker
+COPY ws ./ws
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
 

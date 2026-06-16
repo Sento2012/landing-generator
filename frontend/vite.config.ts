@@ -14,6 +14,13 @@ export default defineConfig({
         target: "http://backend:8000",
         changeOrigin: true,
       },
+      // WebSocket gateway — отдельный сервис на 8001. ws: true важно,
+      // иначе Vite не выполнит handshake-апгрейд.
+      "/ws": {
+        target: "ws://ws:8001",
+        ws: true,
+        changeOrigin: true,
+      },
       // Чтобы Swagger UI работал через тот же origin что и фронт
       "/docs": { target: "http://backend:8000", changeOrigin: true },
       "/redoc": { target: "http://backend:8000", changeOrigin: true },

@@ -19,6 +19,8 @@ from app.llm.domain.models.llm_provider_name import LlmProviderName
 from app.llm.domain.prompt import SYSTEM_PROMPT, TOOL_DESCRIPTIONS
 from app.llm_anthropic.dependency_provider import build_anthropic_plugin
 from app.llm_openai.dependency_provider import build_openai_plugin
+from app.notifier.dependency_provider import build_notifier_facade
+from app.notifier.domain.facade import NotifierFacade
 from app.rabbitmq.dependency_provider import build_rabbitmq_facade
 from app.rabbitmq.domain.facade import RabbitmqFacade
 from app.shared.database import SessionLocal
@@ -58,6 +60,16 @@ def get_rabbitmq_facade() -> RabbitmqFacade:
     return build_rabbitmq_facade(celery_app)
 
 
+# ─── Notifier Facade (pub/sub поверх RabbitMQ topic exchange) ───────────────
+@lru_cache
+def get_notifier_facade() -> NotifierFacade:
+    amqp_url = os.environ.get(
+        "AMQP_URL",
+        os.environ.get("CELERY_BROKER_URL", "amqp://guest:guest@rabbitmq:5672//"),
+    )
+    return build_notifier_facade(amqp_url=amqp_url)
+
+
 # ─── Email Facade ────────────────────────────────────────────────────────────
 @lru_cache
 def get_email_facade() -> EmailFacade:
@@ -87,5 +99,6 @@ def get_generation_facade() -> GenerationFacade:
         session_factory=SessionLocal,
         llm_facade=get_llm_facade(),
         rabbitmq_facade=get_rabbitmq_facade(),
+        notifier_facade=get_notifier_facade(),
         default_provider=str(DEFAULT_LLM_PROVIDER),
     )
