@@ -3,10 +3,10 @@ from datetime import datetime
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.generation.domain.models.entity import GenerationEntity
-from app.generation.domain.models.status import GenerationStatus
 from app.generation.domain.dto.generation import GenerationTransfer
 from app.generation.domain.dto.generation_create import GenerationCreateTransfer
+from app.generation.domain.models.entity import GenerationEntity
+from app.generation.domain.models.status import GenerationStatus
 from app.llm.domain.dto.landing_result import LandingResultTransfer
 
 

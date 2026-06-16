@@ -1,0 +1,30 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "N",    # pep8-naming
+]
+ignore = [
+    "E501",  # line too long — formatter handles it; long URLs/strings are fine
+    "B008",  # function call in default argument — FastAPI Depends() idiom
+    "UP007", # X | None vs Optional[X] — we use both forms intentionally
+    "SIM117", # nested with — sometimes clearer than combined
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B", "N"]
+"alembic/env.py" = ["E", "F"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "worker", "ws"]

@@ -28,7 +28,6 @@ from app.user.dependency_provider import build_user_facade
 from app.user.domain.facade import UserFacade
 from worker.celery_app import celery_app
 
-
 DEFAULT_LLM_PROVIDER = LlmProviderName(
     os.environ.get("LLM_PROVIDER", LlmProviderName.OPENAI)
 )

@@ -1,6 +1,6 @@
 """Контракт LLM-провайдера. Всё, что внешний код знает о провайдере."""
 from abc import ABC, abstractmethod
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from app.llm.domain.dto.llm_event import LlmEventTransfer
 

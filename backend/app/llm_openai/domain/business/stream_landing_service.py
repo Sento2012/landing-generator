@@ -9,7 +9,7 @@ SYSTEM_PROMPT приходит параметром — модуль не зав
 - _extract_landing_result() — финальная сборка из накопленных tool_calls
 """
 import json
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from openai import AsyncOpenAI, OpenAIError
 
@@ -17,7 +17,6 @@ from app.llm.domain.business.landing_result_builder import apply_tool_content
 from app.llm.domain.dto.landing_result import LandingResultTransfer
 from app.llm.domain.dto.llm_event import LlmEventTransfer, LlmEventType
 from app.llm.domain.dto.llm_prompt import LlmPromptTransfer
-
 
 # Накопитель одного tool call: имя и аккумулированный JSON arguments.
 _ToolCallAcc = dict[str, str]  # {"name": ..., "arguments": ...}

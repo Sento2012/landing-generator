@@ -1,6 +1,7 @@
 """EmailSender — фактически шлёт email через SMTP. Вызывается из Celery worker."""
-import aiosmtplib
 from email.message import EmailMessage as RawEmailMessage
+
+import aiosmtplib
 
 from app.email.domain.dto.email_message import EmailMessageTransfer
 

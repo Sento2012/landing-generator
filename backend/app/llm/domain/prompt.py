@@ -6,7 +6,6 @@
 """
 from app.llm.domain.models.tool_name import LlmToolName
 
-
 SYSTEM_PROMPT = """You are an expert landing page designer. The user describes a landing page
 they want, and you build a complete, modern, polished single-page website.
 

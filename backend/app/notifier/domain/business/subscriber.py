@@ -6,7 +6,8 @@
 тогда auto-delete queue гарантированно убирается на стороне брокера.
 """
 import json
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 
 import aio_pika
 

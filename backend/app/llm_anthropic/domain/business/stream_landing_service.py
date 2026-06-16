@@ -2,7 +2,7 @@
 
 Здесь живёт всё Anthropic-специфичное. SYSTEM_PROMPT приходит параметром.
 """
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import anthropic
 

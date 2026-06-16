@@ -1,11 +1,10 @@
 """JwtService — выдача и валидация JWT access-токенов."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
 from app.user.domain.dto.jwt_token import JwtPayloadTransfer, JwtTokenTransfer
 from app.user.domain.dto.user import UserTransfer
-
 
 JWT_ALGORITHM = "HS256"
 
@@ -20,7 +19,7 @@ class JwtService:
         self._expires_minutes = expires_minutes
 
     def issue(self, user: UserTransfer) -> JwtTokenTransfer:
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         exp = now + timedelta(minutes=self._expires_minutes)
         payload = {
             "sub": str(user.id),

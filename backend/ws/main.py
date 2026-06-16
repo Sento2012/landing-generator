@@ -14,7 +14,7 @@ import asyncio
 import json
 import logging
 import os
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 import aio_pika
 from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect, status
@@ -82,10 +82,8 @@ async def ws_endpoint(websocket: WebSocket, token: str = Query(...)) -> None:
         logger.info("WS disconnect user=%s", user_id)
     finally:
         forward_task.cancel()
-        try:
+        with suppress(asyncio.CancelledError, Exception):
             await forward_task
-        except (asyncio.CancelledError, Exception):  # noqa: BLE001
-            pass
 
 
 async def _read_loop(websocket: WebSocket, user_id: int) -> None:
@@ -95,7 +93,7 @@ async def _read_loop(websocket: WebSocket, user_id: int) -> None:
             raw = await asyncio.wait_for(
                 websocket.receive_text(), timeout=IDLE_TIMEOUT_SECONDS,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.info("WS idle timeout user=%s", user_id)
             await websocket.close(
                 code=status.WS_1000_NORMAL_CLOSURE, reason="idle timeout",

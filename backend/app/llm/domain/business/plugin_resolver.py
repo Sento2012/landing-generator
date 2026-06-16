@@ -31,7 +31,7 @@ class LlmPluginResolver:
         try:
             return self._plugins[chosen]
         except KeyError:
-            available = [str(k) for k in self._plugins.keys()]
+            available = [str(k) for k in self._plugins]
             raise ValueError(
                 f"Unknown LLM provider: {chosen!r}. Available: {available}"
             ) from None

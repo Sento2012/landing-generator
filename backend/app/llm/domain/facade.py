@@ -1,5 +1,5 @@
 """Публичная дверь Llm-модуля. Тонкая — делегирует Factory."""
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from app.llm.domain.dto.llm_event import LlmEventTransfer
 from app.llm.domain.dto.llm_prompt import LlmPromptTransfer

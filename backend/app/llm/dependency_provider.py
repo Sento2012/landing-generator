@@ -5,8 +5,8 @@
 """
 from app.llm.domain.facade import LlmFacade
 from app.llm.domain.factory import LlmFactory
-from app.llm.domain.plugin.interface import LlmProviderPluginInterface
 from app.llm.domain.models.llm_provider_name import LlmProviderName
+from app.llm.domain.plugin.interface import LlmProviderPluginInterface
 
 
 def build_llm_facade(

@@ -3,11 +3,11 @@
 Логики здесь нет. Всё реальное — в OpenAiStreamLandingService через OpenAiFacade.
 Plugin только переупаковывает `str → LlmPromptTransfer` и проксирует поток событий.
 """
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
-from app.llm.domain.plugin.interface import LlmProviderPluginInterface
 from app.llm.domain.dto.llm_event import LlmEventTransfer
 from app.llm.domain.dto.llm_prompt import LlmPromptTransfer
+from app.llm.domain.plugin.interface import LlmProviderPluginInterface
 from app.llm_openai.domain.facade import OpenAiFacade
 
 
